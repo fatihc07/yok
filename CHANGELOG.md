@@ -3,6 +3,7 @@
 ## 2026-09-11 — OİS test yöneticisi örneğiyle birebir paket
 
 - The controlled PSK 301 test fixture now sends the administrator's explicitly validated 13 July packet values: API week `1`, absent `saat: 2`, and QR-confirmed `Usaat: 0`.
+- Normalized the attendance request's course, instructor, section, and student identifiers to strings, matching the administrator's accepted JSON contract exactly.
 - This is limited to the controlled OİS test fixture and does not modify normal-course calendar or absence-hour behavior.
 
 ## 2026-09-11 — Doğrulanmamış eski yoklama belleğini temizleme
