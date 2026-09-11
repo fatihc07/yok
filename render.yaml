@@ -1,0 +1,20 @@
+services:
+  - type: web
+    runtime: node
+    name: kampus-yoklama-staging
+    buildCommand: npm ci && npm run build
+    startCommand: npm run server
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kampus-yoklama-staging-db
+          property: connectionString
+
+databases:
+  - name: kampus-yoklama-staging-db
+    plan: free
+    databaseName: kampus_yoklama
+    user: kampus_yoklama
