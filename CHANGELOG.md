@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-11 — QR doğrulama bileti ve gerçekçi OİS durumu
+
+- Fixed the instructor-side QR check-in flow to request the server's short-lived validation ticket before claiming attendance. Valid QR scans had been rejected because the client sent the rotating challenge under the wrong request field.
+- Clarified the OİS delivery modal: HTTP 200 / `err:0` is now explicitly described as an unverified response, never as a confirmed OİS attendance record.
+- A direct browser test showed that the test endpoint can return that response while both the weekly screen and July daily report remain unchanged; the UI therefore no longer claims that a daily record will necessarily appear.
+- Re-ran the controlled request with the administrator's exact mixed absence/presence field mapping after fixing QR validation; OİS test still left both students at zero. This confirms that the remaining write failure is outside the client-side QR and payload construction path.
+
 ## 2026-09-11 — OİS test yöneticisi örneğiyle birebir paket
 
 - The controlled PSK 301 test fixture now sends the administrator's explicitly validated 13 July packet values: API week `1`, absent `saat: 2`, and QR-confirmed `Usaat: 0`.

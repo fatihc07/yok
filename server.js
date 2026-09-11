@@ -479,7 +479,7 @@ async function sendToOis(payload, course) {
     environmentLabel: target.label,
     endpoint: `${url.origin}${url.pathname}`,
     response: result?.msg || body.slice(0, 500),
-    verificationNote: 'OİS API isteği kabul etti. Bu kayıt önce OİS Günlük Yoklama Listesi’nde görünür; haftalık rapora OİS gün sonu aktarımından sonra yansır. Uygulama, haftalık raporu doğrulayacak bir OİS okuma API’sine sahip değildir.',
+    verificationNote: 'OİS HTTP 200 / err:0 yanıtı döndü; ancak bu yanıt OİS kaydının kalıcı olarak oluştuğunu kanıtlamaz. OİS raporunda görünene kadar kayıt doğrulanmamış kabul edilir.',
   };
 }
 async function readOisCourseProgram(instructorId, course) {
