@@ -400,8 +400,8 @@ function createAttendanceSession(instructorId, input, actor = {}) {
 function attendancePayload(session) {
   const present = new Set(session.present.map(student => student.no));
   // OİS yöneticisinin doğruladığı URL'deki JSON biçimine sadık kalıyoruz:
-  // ders kimliği ve diğer ders tanımlayıcıları metin olarak taşınır.
-  return { method: 'yoklama', ders: [{ ders_id: String(session.course.id), tarih: session.meetingDate, kullanici_id: String(session.course.oisInstructorId || session.instructorId), section: String(session.course.section), hafta: String(session.apiWeek ?? session.week) }], ogrenciler_saat: (courseStudents[session.course.id] || []).map(student => ({ ogrenci_no: String(student.no), [present.has(student.no) ? 'Usaat' : 'saat']: present.has(student.no) ? '0' : String(session.absenceHours) })) };
+  // `ders_id` sayıdır; kullanıcı, section, hafta ve öğrenci kimlikleri metindir.
+  return { method: 'yoklama', ders: [{ ders_id: Number(session.course.id), tarih: session.meetingDate, kullanici_id: String(session.course.oisInstructorId || session.instructorId), section: String(session.course.section), hafta: String(session.apiWeek ?? session.week) }], ogrenciler_saat: (courseStudents[session.course.id] || []).map(student => ({ ogrenci_no: String(student.no), [present.has(student.no) ? 'Usaat' : 'saat']: present.has(student.no) ? '0' : String(session.absenceHours) })) };
 }
 function attendanceDeliverySummary(session, sent) {
   const present = new Set(session.present.map(student => String(student.no)));

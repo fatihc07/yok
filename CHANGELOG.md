@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-11 — OİS ders kimliği türü düzeltmesi
+
+- Restored `ders_id` to a JSON number for all OİS attendance writes, matching the administrator's tested request exactly. Instructor ID, section, week, and student numbers remain strings.
+- This corrects the regression that serialized course ID `27063` as `"27063"`; OİS test returned `err:0` for that malformed variant even though its attendance screen remained unchanged.
+
 ## 2026-09-11 — OİS ders saatlerini ders listesiyle alma
 
 - “Derslerimi getir” artık her OİS ders kaydındaki teori, uygulama ve laboratuvar saatlerini de saklar ve ders kartında gösterir.
