@@ -6,6 +6,11 @@
 - Added a PostgreSQL-backed application-state store for account hashes, calendars, attendance history, and audit logs, while retaining the local-file fallback for local development.
 - Added a free Render Postgres staging resource to `render.yaml`; its private `DATABASE_URL` is injected into the web service without exposing database credentials in the repository.
 
+## 2026-09-11 — OİS teori/uygulama yoklama alanı düzeltmesi
+
+- Corrected each OİS attendance payload to use one consistent field for its selected scheduled session: theory sends `saat`, while application/practice/lab sends `Usaat`.
+- QR-confirmed students now send `0` and absent students send the selected session's lesson hours through that same session field.
+
 ## 2026-09-11 — Öğretim elemanı ders katılım istatistikleri
 
 - Added a selected-term instructor participation summary to the course dashboard.
@@ -54,7 +59,7 @@
 - Made the academic week date common to every course: each week is always represented by that academic week’s Monday, while OİS lesson-day data remains an informational/session-separation attribute.
 - Display the OİS end time alongside the start time in both the selected course header and per-week session labels.
 - Simplified week cards to week name and shared start date only; moved selectable OİS day/time/theory/application details to the course header card.
-- Corrected live attendance payload fields to the OİS administrator's working form: absent students use `saat`, while QR-confirmed students use capitalized `Usaat`.
+- At that time, the attendance-field handling was aligned with the then-understood OİS sample; it has since been superseded by the session-type correction above.
 
 ## 2026-09-10 — Administrator-managed academic calendar
 

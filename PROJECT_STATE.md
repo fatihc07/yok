@@ -49,7 +49,7 @@ Local QR attendance MVP with an OİS write adapter.
 - When OİS provides both start and end time for a program row, the teacher plan and course header display the full time range; duration continues to be calculated from that same range.
 - Week cards are intentionally minimal, showing only the week number and shared Monday date. Course day/time/type options live in the black course card above the plan, where the instructor chooses the intended session.
 - The supplied OİS attendance write payload has no explicit theory/application field. The app therefore retains the selected OİS program slot’s type and duration locally, while sending the administrator-defined common Monday date, week, and absence-hour values in the documented payload.
-- OİS attendance fields follow the administrator-provided working convention: an absent student is sent as `saat: <lesson-hours>` and a QR-confirmed student as `Usaat: 0`. This field casing is intentionally preserved.
+- OİS attendance fields follow the administrator-provided session convention: a theory session sends every student through `saat`, while an application/practice/lab session sends every student through `Usaat`. In either session, QR-confirmed students send `0`; absent students send that session's lesson hours.
 - The default server target is production and always uses standard TLS verification. Only the temporary controlled test-course bridge may use the explicit test-host TLS exception.
 - The OİS endpoint responds successfully at HTTP level but previously rejected the app's course payload with a course-data error.
 - Temporary controlled test bridge: only instructor `2500002318`, `2025-2026 Yaz (3)`, PSK 301 / course ID 27063 / section 1 is injected as a selectable test course. Its seven weekly sessions, known two-student controlled roster fallback, program probe, and attendance delivery target OİS test. All other course reads and writes retain the configured live OİS target. Remove this bridge and `OBS_TEST_API_BASE` before production deployment.
@@ -63,7 +63,7 @@ Local QR attendance MVP with an OİS write adapter.
 
 ## Known issue / next work
 
-- Run the controlled test bridge only with the authorized PSK 301 test course, then confirm the OİS test interface records absent students with `saat: 6` and QR-confirmed students with `Usaat: 0`.
+- Run the controlled test bridge only with the authorized PSK 301 test course, then confirm the OİS test interface records a theory session's QR-confirmed student as `saat: 0` and absent student as `saat: 6`.
 - OİS must provide an attendance-history read API before historical attendance values can be independently reconciled from OİS rather than the local successful-delivery history.
 - The OİS weekly-plan API currently exposes only recurring class metadata, not date/week rows; the administrator-configured academic calendar now supplies the dates until OİS provides an authoritative calendar/weekly-plan endpoint.
 - A free Render service is suitable for controlled online testing but not a reliable classroom-production host: it sleeps after inactivity and its free Postgres instance expires after 30 days. Move the staging database to a permanent managed database before institution-wide production use.
