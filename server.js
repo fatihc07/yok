@@ -64,10 +64,17 @@ function buildControlledTestMeetings() {
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(start);
     date.setUTCDate(start.getUTCDate() + index * 7);
+    const dateValue = isoDate(date);
+    // OİS yöneticisinin OİS test için çalıştırdığını bildirdiği örnek: aynı
+    // ders, 13.07.2026 tarihinde `hafta: 1` ve gelmeyen öğrenci için 2 saat.
+    // Bu yalnız kontrollü test verisidir; canlı derslerin takvim kuralını etkilemez.
+    const managerVerifiedExample = dateValue === '2026-07-13';
     return {
-      id: `controlled-test:${index + 1}:salı:08:00`, week: index + 1, date: isoDate(date),
+      id: `controlled-test:${index + 1}:salı:08:00`, week: index + 1, date: dateValue,
       day: 'Salı', startTime: '08:00', endTime: '14:00', type: 'TEORI',
-      absenceHours: 6, apiWeek: String(index + 1), absentField: 'saat', presentField: 'Usaat',
+      absenceHours: managerVerifiedExample ? 2 : 6,
+      apiWeek: managerVerifiedExample ? '1' : String(index + 1),
+      absentField: 'saat', presentField: 'Usaat',
     };
   });
 }

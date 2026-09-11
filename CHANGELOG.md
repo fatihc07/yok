@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-11 — OİS test yöneticisi örneğiyle birebir paket
+
+- The controlled PSK 301 test fixture now sends the administrator's explicitly validated 13 July packet values: API week `1`, absent `saat: 2`, and QR-confirmed `Usaat: 0`.
+- This is limited to the controlled OİS test fixture and does not modify normal-course calendar or absence-hour behavior.
+
 ## 2026-09-11 — Doğrulanmamış eski yoklama belleğini temizleme
 
 - Older HTTP 200 / `err: 0` requests that had been incorrectly retained as delivered attendance are now invalidated in both local storage and the PostgreSQL-backed server history.
