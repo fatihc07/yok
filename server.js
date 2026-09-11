@@ -54,7 +54,7 @@ function buildMeetings() {
       // ders oturumu sırasıdır. Akademik haftayı `tarih` belirler.
       apiWeek: '1',
       absentField: 'saat',
-      presentField: 'Usaat',
+      presentField: 'saat',
     };
   });
 }
@@ -74,7 +74,7 @@ function buildControlledTestMeetings() {
       // Bu ders haftada tek oturumdur. Akademik hafta tarihi `date` ile,
       // OİS oturum sırası ise her hafta `1` ile gönderilir.
       apiWeek: '1',
-      absentField: 'saat', presentField: 'Usaat',
+      absentField: 'saat', presentField: 'saat',
     };
   });
 }
@@ -119,7 +119,8 @@ function normalizedProgramMeetings(result, course) {
     // OİS ayrı bir yazma-oturumu kodu sağlarsa aynen korunur. Aksi halde
     // aşağıda aynı akademik haftadaki oturum sırasından türetilir.
     const explicitApiWeek = findValue(row, ['yoklama_hafta', 'yoklamahafta', 'api_hafta', 'apihafta', 'hafta_kodu', 'haftakodu', 'hafta_id', 'haftaid']);
-    return { id: `ois:${week}:${date}:${type}:${startTime || index}`, week, date, type, startTime: startTime || null, endTime: endTime || null, absenceHours: hours, explicitApiWeek, absentField: 'saat', presentField: 'Usaat' };
+    const hourField = attendanceHourField(type);
+    return { id: `ois:${week}:${date}:${type}:${startTime || index}`, week, date, type, startTime: startTime || null, endTime: endTime || null, absenceHours: hours, explicitApiWeek, absentField: hourField, presentField: hourField };
   });
   const slotNumberByWeek = new Map();
   return meetings.map(meeting => {
@@ -185,6 +186,7 @@ function normalizedOisKey(key) { return String(key).toLocaleLowerCase('tr-TR').r
 function directProgramValue(row, keys) { return Object.entries(row || {}).find(([key, value]) => keys.includes(normalizedOisKey(key)) && value !== null && value !== undefined && value !== '')?.[1]; }
 function meetingType(value) { return /uyg|pratik|lab/.test(String(value || '').toLocaleLowerCase('tr-TR')) ? 'UYGULAMA' : 'TEORI'; }
 function meetingTypeLabel(type) { return type === 'UYGULAMA' ? 'Uygulama' : 'Teori'; }
+function attendanceHourField(type) { return meetingType(type) === 'UYGULAMA' ? 'Usaat' : 'saat'; }
 function findProgramValue(value, keys, depth = 0) {
   if (depth > 8 || value === null || value === undefined) return undefined;
   if (Array.isArray(value)) return value.map(item => findProgramValue(item, keys, depth + 1)).find(item => item !== undefined);
@@ -231,7 +233,8 @@ function calculatedCalendarMeetings(programResult, course) {
     // Hafta tarihi tüm dersler için takvimdeki pazartesidir. OİS'in ders günü,
     // yalnızca aynı haftadaki farklı teori/uygulama oturumlarını ayırt eder.
     const week = index + 1, date = new Date(start); date.setUTCDate(start.getUTCDate() + index * 7);
-    return { id: `calendar:${week}:${slot.key}`, week, date: isoDate(date), day: slot.day, startTime: slot.startTime, endTime: slot.endTime, type: slot.type, absenceHours: slot.hours, apiWeek: String(slotIndex + 1), absentField: 'saat', presentField: 'Usaat', isExamWeek: calendar.examWeeks.includes(week) };
+    const hourField = attendanceHourField(slot.type);
+    return { id: `calendar:${week}:${slot.key}`, week, date: isoDate(date), day: slot.day, startTime: slot.startTime, endTime: slot.endTime, type: slot.type, absenceHours: slot.hours, apiWeek: String(slotIndex + 1), absentField: hourField, presentField: hourField, isExamWeek: calendar.examWeeks.includes(week) };
   })).sort((a, b) => a.week - b.week || a.date.localeCompare(b.date) || String(a.startTime || '').localeCompare(String(b.startTime || '')));
 }
 
@@ -393,10 +396,8 @@ function createAttendanceSession(instructorId, input, actor = {}) {
     const previouslyDelivered = record.verified === true
       ? (record.present || []).map(student => ({ no: String(student.no), name: student.name, checkedAt: student.checkedAt, deliveredAt: record.lastSentAt }))
       : [];
-    // OİS yöneticisinin 27063 için verdiği çalışan yazma örneği: yok öğrenci
-    // `saat`, QR ile gelmiş öğrenci `Usaat` alanından gider. Bu ortak OİS
-    // yazma sözleşmesidir; ders/hafta bazında sabitlenmez.
-    session = { id: id(), instructorId, course, meetingId: meeting.id, week: meeting.week, apiWeek: meeting.apiWeek, meetingDate: meeting.date, meetingType: meeting.type, absenceHours: meeting.absenceHours, absentField: 'saat', presentField: 'Usaat', openedAt: Date.now(), closesAt: Date.now() + CLASS_TTL, state: 'CLASS_OPEN', present: previouslyDelivered, previouslyDelivered: new Set(previouslyDelivered.map(student => student.no)), historyKey: key };
+    const hourField = attendanceHourField(meeting.type);
+    session = { id: id(), instructorId, course, meetingId: meeting.id, week: meeting.week, apiWeek: meeting.apiWeek, meetingDate: meeting.date, meetingType: meeting.type, absenceHours: meeting.absenceHours, absentField: hourField, presentField: hourField, openedAt: Date.now(), closesAt: Date.now() + CLASS_TTL, state: 'CLASS_OPEN', present: previouslyDelivered, previouslyDelivered: new Set(previouslyDelivered.map(student => student.no)), historyKey: key };
     sessions.set(session.id, session);
   }
   session.qrOpen = true; session.openNumber = record.opens;
@@ -405,9 +406,11 @@ function createAttendanceSession(instructorId, input, actor = {}) {
 }
 function attendancePayload(session) {
   const present = new Set(session.present.map(student => student.no));
-  // OİS yöneticisinin doğruladığı URL'deki JSON biçimine sadık kalıyoruz:
-  // `ders_id` sayıdır; kullanıcı, section, hafta ve öğrenci kimlikleri metindir.
-  return { method: 'yoklama', ders: [{ ders_id: Number(session.course.id), tarih: session.meetingDate, kullanici_id: String(session.course.oisInstructorId || session.instructorId), section: String(session.course.section), hafta: String(session.apiWeek ?? session.week) }], ogrenciler_saat: (courseStudents[session.course.id] || []).map(student => ({ ogrenci_no: String(student.no), [present.has(student.no) ? 'Usaat' : 'saat']: present.has(student.no) ? '0' : String(session.absenceHours) })) };
+  // Alan öğrenci durumuna göre değil, seçilen oturum türüne göre belirlenir:
+  // teori `saat`, uygulama/pratik/laboratuvar `Usaat` kullanır. Aynı oturumda
+  // QR doğrulanan öğrenci 0, gelmeyen öğrenci ders saati kadar gönderilir.
+  const hourField = attendanceHourField(session.meetingType);
+  return { method: 'yoklama', ders: [{ ders_id: Number(session.course.id), tarih: session.meetingDate, kullanici_id: String(session.course.oisInstructorId || session.instructorId), section: String(session.course.section), hafta: String(session.apiWeek ?? session.week) }], ogrenciler_saat: (courseStudents[session.course.id] || []).map(student => ({ ogrenci_no: String(student.no), [hourField]: present.has(student.no) ? '0' : String(session.absenceHours) })) };
 }
 function attendanceDeliverySummary(session, sent) {
   const present = new Set(session.present.map(student => String(student.no)));

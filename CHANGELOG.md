@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-11 — OİS devamsızlık alanını oturum türüne göre seçme
+
+- Corrected the general OİS student payload rule: theory sessions use `saat` for every student, while application/practice/laboratory sessions use `Usaat` for every student.
+- QR-confirmed students now send zero and absent students send the selected OİS lesson hours through that session's single field; attendance status no longer changes the field name.
+- Reproduced the OİS test behavior through both the full browser flow and an application-independent direct request. The endpoint returned `err:0`, but neither the past-term weekly screen nor the July daily report changed, so a writable/open OİS test period is still required for persistence proof.
+
 ## 2026-09-11 — OİS hafta alanını ders oturumu sırasına bağlama
 
 - Corrected the OİS write contract globally: the selected academic week is represented by `tarih`, while payload field `hafta` identifies the recurring lesson slot inside that week.
