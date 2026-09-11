@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-11 — OİS hafta alanını ders oturumu sırasına bağlama
+
+- Corrected the OİS write contract globally: the selected academic week is represented by `tarih`, while payload field `hafta` identifies the recurring lesson slot inside that week.
+- A course with one weekly lesson now sends `hafta: "1"` for every academic date. Courses with multiple theory/application slots receive stable `1`, `2`, and later slot numbers in day/time order.
+- Explicit OİS attendance-slot codes still override the derived slot number when the program API supplies one.
+
 ## 2026-09-11 — Kabul edilen ve doğrulanan yoklamaları ayırma
 
 - Replaced the misleading “no sent attendance” wording with “no OİS-verified attendance” when the write API has not supplied verifiable persistence.

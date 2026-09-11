@@ -44,15 +44,15 @@ function buildMeetings() {
     const date = new Date(start);
     date.setUTCDate(start.getUTCDate() + index * 7);
     const dateValue = isoDate(date);
-    // OİS yöneticisinin 13.07.2026 için paylaştığı test eşlemesi korunur.
-    const knownOisTest = dateValue === '2026-07-13';
     return {
       id: `legacy:${index + 1}:${dateValue}:TEORI`,
       week: index + 1,
       date: dateValue,
       type: 'TEORI',
-      absenceHours: knownOisTest ? 2 : 3,
-      apiWeek: knownOisTest ? '1' : String(index + 1),
+      absenceHours: 3,
+      // OİS yazma API'sindeki `hafta`, dönem haftası değil aynı tarihteki
+      // ders oturumu sırasıdır. Akademik haftayı `tarih` belirler.
+      apiWeek: '1',
       absentField: 'saat',
       presentField: 'Usaat',
     };
@@ -71,9 +71,9 @@ function buildControlledTestMeetings() {
       // Süre aralığı sınıf/blok saatini gösterebilir; OİS devamsızlığı için
       // dersin OİS'teki teorik saati kullanılır. PSK 301'de bu 3 saattir.
       absenceHours: 3,
-      // Yöneticinin OİS test için verdiği 13.07.2026 örneğindeki API hafta
-      // kodu korunur; yalnız bu kontrollü test köprüsüne özgüdür.
-      apiWeek: dateValue === '2026-07-13' ? '1' : String(index + 1),
+      // Bu ders haftada tek oturumdur. Akademik hafta tarihi `date` ile,
+      // OİS oturum sırası ise her hafta `1` ile gönderilir.
+      apiWeek: '1',
       absentField: 'saat', presentField: 'Usaat',
     };
   });
@@ -104,7 +104,7 @@ function normalizedProgramMeetings(result, course) {
     const startTime = findValue(row, ['baslangic_saat', 'baslangicsaat', 'start_time', 'starttime', 'start']);
     return [`${week}:${date}:${type}:${startTime || index}`, { row, week, date, type, startTime, index }];
   })).values()].sort((a, b) => a.week - b.week || a.date.localeCompare(b.date) || String(a.startTime || '').localeCompare(String(b.startTime || '')));
-  return unique.map(({ row, week, date, type, startTime, index }) => {
+  const meetings = unique.map(({ row, week, date, type, startTime, index }) => {
     const endTime = findValue(row, ['bitis_saat', 'bitissaat', 'end_time', 'endtime', 'end']);
     const rowHours = Number(findValue(row, type === 'UYGULAMA'
       ? ['uygulama', 'pratik', 'lab', 'saat', 'ders_saati', 'derssaati']
@@ -116,11 +116,17 @@ function normalizedProgramMeetings(result, course) {
     // aralığı yalnız programı görselleştirmek için kullanılır; teneffüs/blok
     // aralığı nedeniyle ders saatini şişiremez.
     const hours = rowHours || courseHours || lessonHours(startTime, endTime) || 1;
-    // OİS programı görünür hafta sırasından ayrı bir yoklama/API hafta kodu
-    // sağlarsa onu aynen taşırız; aksi halde akademik takvimdeki hafta sırası
-    // bütün dersler için ortak ve güvenli geri dönüş değeridir.
-    const apiWeek = findValue(row, ['yoklama_hafta', 'yoklamahafta', 'api_hafta', 'apihafta', 'hafta_kodu', 'haftakodu', 'hafta_id', 'haftaid']) ?? week;
-    return { id: `ois:${week}:${date}:${type}:${startTime || index}`, week, date, type, startTime: startTime || null, endTime: endTime || null, absenceHours: hours, apiWeek: String(apiWeek), absentField: 'saat', presentField: 'Usaat' };
+    // OİS ayrı bir yazma-oturumu kodu sağlarsa aynen korunur. Aksi halde
+    // aşağıda aynı akademik haftadaki oturum sırasından türetilir.
+    const explicitApiWeek = findValue(row, ['yoklama_hafta', 'yoklamahafta', 'api_hafta', 'apihafta', 'hafta_kodu', 'haftakodu', 'hafta_id', 'haftaid']);
+    return { id: `ois:${week}:${date}:${type}:${startTime || index}`, week, date, type, startTime: startTime || null, endTime: endTime || null, absenceHours: hours, explicitApiWeek, absentField: 'saat', presentField: 'Usaat' };
+  });
+  const slotNumberByWeek = new Map();
+  return meetings.map(meeting => {
+    const nextSlot = (slotNumberByWeek.get(meeting.week) || 0) + 1;
+    slotNumberByWeek.set(meeting.week, nextSlot);
+    const { explicitApiWeek, ...publicMeeting } = meeting;
+    return { ...publicMeeting, apiWeek: String(explicitApiWeek ?? nextSlot) };
   });
 }
 
@@ -220,12 +226,12 @@ function calculatedCalendarMeetings(programResult, course) {
     const key = `${offset}:${type}:${startTime || ''}:${endTime || ''}:${hours}`;
     if (seen.has(key)) return null; seen.add(key);
     return { offset, day: String(day), startTime: startTime || null, endTime: endTime || null, type, hours, key };
-  }).filter(Boolean);
-  return slots.flatMap(slot => Array.from({ length: calendar.weekCount }, (_, index) => {
+  }).filter(Boolean).sort((a, b) => a.offset - b.offset || String(a.startTime || '').localeCompare(String(b.startTime || '')) || a.type.localeCompare(b.type));
+  return slots.flatMap((slot, slotIndex) => Array.from({ length: calendar.weekCount }, (_, index) => {
     // Hafta tarihi tüm dersler için takvimdeki pazartesidir. OİS'in ders günü,
     // yalnızca aynı haftadaki farklı teori/uygulama oturumlarını ayırt eder.
     const week = index + 1, date = new Date(start); date.setUTCDate(start.getUTCDate() + index * 7);
-    return { id: `calendar:${week}:${slot.key}`, week, date: isoDate(date), day: slot.day, startTime: slot.startTime, endTime: slot.endTime, type: slot.type, absenceHours: slot.hours, apiWeek: String(week), absentField: 'saat', presentField: 'Usaat', isExamWeek: calendar.examWeeks.includes(week) };
+    return { id: `calendar:${week}:${slot.key}`, week, date: isoDate(date), day: slot.day, startTime: slot.startTime, endTime: slot.endTime, type: slot.type, absenceHours: slot.hours, apiWeek: String(slotIndex + 1), absentField: 'saat', presentField: 'Usaat', isExamWeek: calendar.examWeeks.includes(week) };
   })).sort((a, b) => a.week - b.week || a.date.localeCompare(b.date) || String(a.startTime || '').localeCompare(String(b.startTime || '')));
 }
 
