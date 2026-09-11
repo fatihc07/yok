@@ -11,6 +11,11 @@
 - Corrected each OİS attendance payload to use one consistent field for its selected scheduled session: theory sends `saat`, while application/practice/lab sends `Usaat`.
 - QR-confirmed students now send `0` and absent students send the selected session's lesson hours through that same session field.
 
+## 2026-09-11 — Yenileme sonrası yoklama durumu tutarlılığı
+
+- Corrected the roster modal to read the selected session's persisted OİS-delivery history after a page refresh, instead of showing all students as waiting because no live session exists.
+- A dry-run/test packet is no longer persisted or presented as an OİS delivery; only an actual successful OİS write locks in the delivered attendance record.
+
 ## 2026-09-11 — Öğretim elemanı ders katılım istatistikleri
 
 - Added a selected-term instructor participation summary to the course dashboard.
