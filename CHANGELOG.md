@@ -21,6 +21,11 @@
 - Replaced the misleading “OİS’e gönderildi” success wording with “OİS API isteği kabul etti” when the API returns HTTP 200 and `err: 0`.
 - The delivery report now explicitly says that OİS first shows the record in its daily attendance list and transfers it to the weekly report at end of day; the app cannot claim weekly-report verification without an OİS read API.
 
+## 2026-09-11 — Kontrollü OİS test hafta alanı eşlemesi
+
+- Changed only the authorized PSK 301 OİS test bridge to send the administrator-provided `hafta: "1"` value for every selected test date, instead of deriving that field from the visible test-week number.
+- Live-course week calculations remain unchanged; this bridge is temporary and exists only to validate the OİS test integration.
+
 ## 2026-09-11 — Yerel Cloudflare tünelini kaldırma
 
 - Removed the Cloudflare quick-tunnel command from `npm run tv`; it was only a temporary cross-network convenience and its QUIC/TLS error is unrelated to OİS attendance delivery.

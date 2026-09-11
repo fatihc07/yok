@@ -67,7 +67,11 @@ function buildControlledTestMeetings() {
     return {
       id: `controlled-test:${index + 1}:salı:08:00`, week: index + 1, date: isoDate(date),
       day: 'Salı', startTime: '08:00', endTime: '14:00', type: 'TEORI',
-      absenceHours: 6, apiWeek: String(index + 1), absentField: 'saat', presentField: 'Usaat',
+      // OİS yöneticisinin çalıştığını doğruladığı test örneğinde, ekran tarihi
+      // 13.07.2026 olmasına rağmen API `hafta` alanı "1" idi. Test hostu bu
+      // değeri ekran hafta sırası olarak yorumlamıyor; geçici test köprüsünde
+      // yalnızca yöneticinin örneğindeki sabit değeri kullanıyoruz.
+      absenceHours: 6, apiWeek: '1', absentField: 'saat', presentField: 'Usaat',
     };
   });
 }
