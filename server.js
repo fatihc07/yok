@@ -251,6 +251,24 @@ const ATTENDANCE_HISTORY_STORE_PATH = path.join(DATA_DIR, 'attendance-history.js
 function readAttendanceHistoryStore() { try { return JSON.parse(fs.readFileSync(ATTENDANCE_HISTORY_STORE_PATH, 'utf8')); } catch { return {}; } }
 const attendanceHistory = readAttendanceHistoryStore();
 function saveAttendanceHistory() { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(ATTENDANCE_HISTORY_STORE_PATH, `${JSON.stringify(attendanceHistory, null, 2)}\n`, { mode: 0o600 }); saveDatabaseState('attendance-history', attendanceHistory); }
+// HTTP 200 / err:0 yalnızca yazma isteğinin kabul edildiğini gösterir. Eski
+// sürümler bunu teslim edilmiş yoklama sanıp QR katılımını belleğe kilitlemişti.
+// OİS'ten okunarak doğrulanmamış hiçbir eski kayıt yeni oturuma taşınamaz.
+function invalidateUnverifiedAttendanceHistory() {
+  let changed = false;
+  for (const record of Object.values(attendanceHistory)) {
+    if (!record || record.verified === true) continue;
+    if ((record.present || []).length || record.lastSentAt || Number(record.opens)) {
+      record.present = [];
+      record.lastSentAt = null;
+      record.opens = 0;
+      record.enrolled = null;
+      record.invalidatedAt = new Date().toISOString();
+      changed = true;
+    }
+  }
+  if (changed) saveAttendanceHistory();
+}
 function attendanceHistoryKey(instructorId, course, meeting) { return `${instructorId}:${course.id}:${meeting.id}`; }
 function attendanceRecord(instructorId, course, meeting) {
   const key = attendanceHistoryKey(instructorId, course, meeting);
@@ -280,6 +298,7 @@ async function initializeDatabase() {
   assignObject(accountStore, stateByKey.get('instructor-passwords'));
   assignObject(adminStore, stateByKey.get('admin-passwords'));
   assignObject(attendanceHistory, stateByKey.get('attendance-history'));
+  invalidateUnverifiedAttendanceHistory();
   const savedAudit = stateByKey.get('audit-log');
   if (Array.isArray(savedAudit)) audit.splice(0, audit.length, ...savedAudit.slice(0, 20_000));
   Object.entries(adminStore).forEach(([username, record]) => {
@@ -340,7 +359,9 @@ function createAttendanceSession(instructorId, input, actor = {}) {
   let session = [...sessions.values()].find(item => item.instructorId === instructorId && item.course.id === course.id && item.meetingId === meeting.id && item.state === 'CLASS_OPEN');
   record.opens += 1; saveAttendanceHistory();
   if (!session) {
-    const previouslyDelivered = (record.present || []).map(student => ({ no: String(student.no), name: student.name, checkedAt: student.checkedAt, deliveredAt: record.lastSentAt }));
+    const previouslyDelivered = record.verified === true
+      ? (record.present || []).map(student => ({ no: String(student.no), name: student.name, checkedAt: student.checkedAt, deliveredAt: record.lastSentAt }))
+      : [];
     // OİS yöneticisinin 27063 için verdiği çalışan yazma örneği: yok öğrenci
     // `saat`, QR ile gelmiş öğrenci `Usaat` alanından gider. Bu ortak OİS
     // yazma sözleşmesidir; ders/hafta bazında sabitlenmez.
@@ -369,7 +390,7 @@ function courseParticipation(instructorId, course) {
       const auditTotal = audit.find(item => item.metrics?.attendanceKey === key && Number.isFinite(Number(item.metrics?.total)))?.metrics?.total;
       return { meeting, record, enrolled: Number(record?.enrolled ?? auditTotal ?? (courseStudents[course.id] || []).length) };
     })
-    .filter(({ record }) => Boolean(record?.lastSentAt));
+    .filter(({ record }) => record?.verified === true && Boolean(record?.lastSentAt));
   const attendedTotal = delivered.reduce((total, { record }) => total + (record.present || []).length, 0);
   const possibleTotal = delivered.reduce((total, { enrolled }) => total + enrolled, 0);
   const deliveredWeeks = [...new Set(delivered.map(({ meeting }) => Number(meeting.week)).filter(Number.isFinite))];
@@ -569,7 +590,7 @@ app.get('/api/courses/:id/attendance-history', auth, (req, res) => {
   res.json({
     courseId: course.id,
     meetingId: meeting.id,
-    delivered: Boolean(record?.lastSentAt),
+    delivered: record?.verified === true && Boolean(record?.lastSentAt),
     present: (record?.present || []).map(student => ({ no: String(student.no), name: student.name, checkedAt: student.checkedAt })),
     sentAt: record?.lastSentAt || null,
   });
@@ -639,7 +660,7 @@ app.get('/api/checkin/validate', (req, res) => { const session = sessions.get(St
 app.get('/api/sessions/:id', auth, (req, res) => { const session = getSession(req, res); if (!session) return; res.json({ id: session.id, state: session.state, qrOpen: session.qrOpen, course: publicCourse(session.course), meetingId: session.meetingId, week: session.week, apiWeek: session.apiWeek, meetingDate: session.meetingDate, meetingType: session.meetingType, absenceHours: session.absenceHours, absentField: session.absentField, presentField: session.presentField, closesAt: session.closesAt, present: session.present, previouslyDeliveredCount: session.previouslyDelivered?.size || 0, eligible: (courseStudents[session.course.id] || []).length, openNumber: session.openNumber, maxOpens: MAX_QR_OPENS, opensRemaining: MAX_QR_OPENS - session.openNumber }); });
 app.get('/api/sessions/:id/ois-preview', auth, (req, res) => { const session = getSession(req, res); if (!session) return; const instructor = instructors[session.instructorId], target = oisWriteTarget(session.course); res.json({ deliveryTarget: { environment: target.environment, label: target.label, endpoint: target.base || null }, instructor: { id: instructor.id, name: instructor.name }, course: { id: session.course.id, code: session.course.code, title: session.course.title, academicYear: session.course.academicYear, semester: session.course.semester, section: session.course.section }, week: session.week, apiWeek: session.apiWeek, date: session.meetingDate, type: session.meetingType, absenceHours: session.absenceHours, absentField: session.absentField, presentField: session.presentField, payload: attendancePayload(session) }); });
 app.post('/api/attendance/claim', (req, res) => { const { sessionId, ticket, studentNo } = req.body; const session = sessions.get(sessionId), checkin = checkinTickets.get(String(ticket || '')); if (!session || session.state !== 'CLASS_OPEN' || !session.qrOpen || Date.now() > session.closesAt) return res.status(410).json({ error: 'QR yoklaması kapalı veya ders bitmiş' }); if (!checkin || checkin.sessionId !== session.id || checkin.expiresAt < Date.now()) return res.status(400).json({ error: 'Öğrenci doğrulama süresi doldu. Güncel QR’ı yeniden okutun.' }); const student = (courseStudents[session.course.id] || []).find(item => item.no === String(studentNo)); if (!student) return res.status(403).json({ error: 'Bu öğrenci numarası dersin kayıt listesinde bulunamadı' }); if (session.previouslyDelivered?.has(student.no)) return res.status(409).json({ error: 'Bu dersin bu oturumundaki yoklamanız daha önce OİS’e gönderildi.' }); if (session.present.some(item => item.no === student.no)) return res.status(409).json({ error: 'Bu öğrenci için yoklama zaten alınmış' }); checkinTickets.delete(ticket); session.present.push({ ...student, checkedAt: new Date().toISOString() }); event('Yoklama kaydedildi', `${student.no} · ${student.name}`, { ...auditContext(req, 'student', student.no, student.name), category: 'attendance', metrics: { studentNo: student.no, courseId: session.course.id, courseCode: session.course.code, meetingId: session.meetingId, week: session.week } }); res.status(201).json({ ok: true, student, count: session.present.length }); });
-app.post('/api/sessions/:id/end', auth, async (req, res) => { const session = getSession(req, res); if (!session) return; if (session.state !== 'CLASS_OPEN') return res.status(410).json({ error: 'Ders oturumu zaten bitmiş' }); session.state = 'ENDED'; session.qrOpen = false; session.challenge = null; const oisPayload = attendancePayload(session); try { const delivery = await sendToOis(oisPayload, session.course); session.oisDelivery = delivery; if (delivery.sent) { const history = attendanceHistory[session.historyKey] || { opens: session.openNumber, present: [] }; history.opens = Math.max(Number(history.opens) || 0, session.openNumber); history.present = session.present.map(student => ({ no: String(student.no), name: student.name, checkedAt: student.checkedAt || new Date().toISOString() })); history.enrolled = (courseStudents[session.course.id] || []).length; history.lastSentAt = new Date().toISOString(); attendanceHistory[session.historyKey] = history; saveAttendanceHistory(); } const summary = attendanceDeliverySummary(session, Boolean(delivery.sent)); for (const pairing of tvPairings.values()) if (pairing.sessionId === session.id) pairing.status = 'ENDED'; const actor = auditContext(req, 'instructor', req.instructorId, instructors[req.instructorId]?.name); event(delivery.sent ? 'OİS yoklama gönderildi' : 'OİS yoklama paketi hazırlandı', `${session.course.code} · hafta ${session.week} · ${summary.attended}/${summary.total} öğrenci`, { ...actor, category: 'attendance', metrics: { attendanceKey: session.historyKey, courseId: session.course.id, courseCode: session.course.code, meetingId: session.meetingId, week: session.week, total: summary.total, attended: summary.attended, absent: summary.absent, sent: Boolean(delivery.sent) } }); res.json({ ok: true, oisPayload, delivery, summary, openNumber: session.openNumber, maxOpens: MAX_QR_OPENS, opensRemaining: MAX_QR_OPENS - session.openNumber }); } catch (error) { session.state = 'CLASS_OPEN'; event('OİS gönderimi başarısız', `${session.course.code} · ${error.message}`, { ...auditContext(req, 'instructor', req.instructorId, instructors[req.instructorId]?.name), category: 'attendance', metrics: { courseId: session.course.id, courseCode: session.course.code, meetingId: session.meetingId, week: session.week } }); res.status(502).json({ error: 'OİS gönderimi başarısız; ders oturumu yeniden açık bırakıldı.', detail: error.message, oisPayload, oisDebug: error.oisDebug || null }); } });
+app.post('/api/sessions/:id/end', auth, async (req, res) => { const session = getSession(req, res); if (!session) return; if (session.state !== 'CLASS_OPEN') return res.status(410).json({ error: 'Ders oturumu zaten bitmiş' }); session.state = 'ENDED'; session.qrOpen = false; session.challenge = null; const oisPayload = attendancePayload(session); try { const delivery = await sendToOis(oisPayload, session.course); session.oisDelivery = delivery; if (delivery.sent && delivery.verified) { const history = attendanceHistory[session.historyKey] || { opens: session.openNumber, present: [] }; history.opens = Math.max(Number(history.opens) || 0, session.openNumber); history.present = session.present.map(student => ({ no: String(student.no), name: student.name, checkedAt: student.checkedAt || new Date().toISOString() })); history.enrolled = (courseStudents[session.course.id] || []).length; history.lastSentAt = new Date().toISOString(); history.verified = true; attendanceHistory[session.historyKey] = history; saveAttendanceHistory(); } const summary = attendanceDeliverySummary(session, Boolean(delivery.sent && delivery.verified)); for (const pairing of tvPairings.values()) if (pairing.sessionId === session.id) pairing.status = 'ENDED'; const actor = auditContext(req, 'instructor', req.instructorId, instructors[req.instructorId]?.name); event(delivery.sent && delivery.verified ? 'OİS yoklama gönderildi' : 'OİS yoklama paketi hazırlandı', `${session.course.code} · hafta ${session.week} · ${summary.attended}/${summary.total} öğrenci`, { ...actor, category: 'attendance', metrics: { attendanceKey: session.historyKey, courseId: session.course.id, courseCode: session.course.code, meetingId: session.meetingId, week: session.week, total: summary.total, attended: summary.attended, absent: summary.absent, sent: Boolean(delivery.sent && delivery.verified) } }); res.json({ ok: true, oisPayload, delivery, summary, openNumber: session.openNumber, maxOpens: MAX_QR_OPENS, opensRemaining: MAX_QR_OPENS - session.openNumber }); } catch (error) { session.state = 'CLASS_OPEN'; event('OİS gönderimi başarısız', `${session.course.code} · ${error.message}`, { ...auditContext(req, 'instructor', req.instructorId, instructors[req.instructorId]?.name), category: 'attendance', metrics: { courseId: session.course.id, courseCode: session.course.code, meetingId: session.meetingId, week: session.week } }); res.status(502).json({ error: 'OİS gönderimi başarısız; ders oturumu yeniden açık bırakıldı.', detail: error.message, oisPayload, oisDebug: error.oisDebug || null }); } });
 app.get('/api/audit', adminAuth, (_, res) => res.json(audit));
 
 app.post('/api/admin/login', (req, res) => { const admin = admins[String(req.body.username || '')]; if (!admin || admin.passwordHash !== hash(String(req.body.password || ''))) return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı' }); const token = secret(); adminTokens.set(token, admin.username); event('Yönetici girişi', 'Yönetim merkezine giriş yapıldı', { ...auditContext(req, 'admin', admin.username, admin.name), category: 'authentication' }); res.json({ token, passwordChangeRequired: admin.passwordIsDefault, admin: { username: admin.username, name: admin.name, passwordIsDefault: admin.passwordIsDefault } }); });

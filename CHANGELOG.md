@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-11 — Doğrulanmamış eski yoklama belleğini temizleme
+
+- Older HTTP 200 / `err: 0` requests that had been incorrectly retained as delivered attendance are now invalidated in both local storage and the PostgreSQL-backed server history.
+- A new QR session starts with a clean roster unless an attendance record is explicitly verified; obsolete attempts cannot mark a student present, consume the five-session allowance, or affect participation statistics.
+
 ## 2026-09-11 — Render çevrimiçi test hazırlığı
 
 - Prepared the application for a single Render Web Service: Express now serves the built web interface and API at the same HTTPS address, with a health endpoint for deployment checks.

@@ -14,6 +14,11 @@ let rotationTimer, tvTimer, lastServerSync=0;
 
 const el = (s) => document.querySelector(s);
 const save = () => localStorage.setItem(storeKey, JSON.stringify(state));
+// Eski sürüm HTTP 200 yanıtını doğrulanmış teslimat gibi saklayabiliyordu.
+// Doğrulanmamış eski özetler yeni QR oturumunda katılım göstermemelidir.
+const legacyCompletedCount = state.completed.length;
+state.completed = state.completed.filter(item => item.verified === true);
+if (state.completed.length !== legacyCompletedCount) save();
 const now = () => Date.now();
 const fmt = (t) => new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(t);
 const safe = (v) => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -64,7 +69,7 @@ async function closeQr() {
 async function endClass() {
   if (!state.active) return;
   const r=await api(`/api/sessions/${state.active.id}/end`,{method:'POST',body:JSON.stringify({week:state.active.week})}),data=await r.json();if(!r.ok){if(!data.oisDebug){alert(data.error||'Gönderim başlatılamadı.');return;}state.failedDelivery={courseId:course.id,date:state.active.meetingDate,error:data.detail||data.error,payload:data.oisPayload,debug:data.oisDebug};save();render();return showOisFailureModal(data);}
-  const summary=data.summary||{total:students.length,attended:state.active.present.length,absent:Math.max(0,students.length-state.active.present.length),sent:data.delivery?.sent?students.length:0,students:[]};const completed={courseId:course.id,meetingId:state.active.meetingId,date:state.active.meetingDate,week:state.active.week,present:summary.attended,total:summary.total,openNumber:data.openNumber,maxOpens:data.maxOpens||5,endedAt:now(),obsSent:Boolean(data.delivery?.sent),accepted:Boolean(data.delivery?.accepted),delivery:data.delivery};state.completed=state.completed.filter(x=>!(x.courseId===completed.courseId&&x.meetingId===completed.meetingId));state.completed.unshift(completed);delete state.lastDelivery;
+  const summary=data.summary||{total:students.length,attended:state.active.present.length,absent:Math.max(0,students.length-state.active.present.length),sent:data.delivery?.sent?students.length:0,students:[]};const completed={courseId:course.id,meetingId:state.active.meetingId,date:state.active.meetingDate,week:state.active.week,present:summary.attended,total:summary.total,openNumber:data.openNumber,maxOpens:data.maxOpens||5,endedAt:now(),obsSent:Boolean(data.delivery?.sent),accepted:Boolean(data.delivery?.accepted),verified:Boolean(data.delivery?.verified),delivery:data.delivery};state.completed=state.completed.filter(x=>!(x.courseId===completed.courseId&&x.meetingId===completed.meetingId));state.completed.unshift(completed);delete state.lastDelivery;
   log('Ders bitirildi', data.delivery?.accepted?`${summary.total} öğrenci için OİS API kabul yanıtı alındı; doğrulama bekleniyor`:`${summary.attended} öğrenci için OİS test paketi hazır`);state.active=null;save();render();showDeliverySummaryModal(summary,data.delivery,completed);
 }
 async function rotate() {
