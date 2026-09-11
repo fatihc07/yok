@@ -163,9 +163,6 @@ function normalizedOisKey(key) { return String(key).toLocaleLowerCase('tr-TR').r
 function directProgramValue(row, keys) { return Object.entries(row || {}).find(([key, value]) => keys.includes(normalizedOisKey(key)) && value !== null && value !== undefined && value !== '')?.[1]; }
 function meetingType(value) { return /uyg|pratik|lab/.test(String(value || '').toLocaleLowerCase('tr-TR')) ? 'UYGULAMA' : 'TEORI'; }
 function meetingTypeLabel(type) { return type === 'UYGULAMA' ? 'Uygulama' : 'Teori'; }
-// OİS uses one absence column for the whole selected session. Teori is "saat";
-// uygulama/pratik/lab is "Usaat". Attendance status changes only its value.
-function attendanceHoursField(type) { return type === 'UYGULAMA' ? 'Usaat' : 'saat'; }
 function findProgramValue(value, keys, depth = 0) {
   if (depth > 8 || value === null || value === undefined) return undefined;
   if (Array.isArray(value)) return value.map(item => findProgramValue(item, keys, depth + 1)).find(item => item !== undefined);
@@ -344,8 +341,10 @@ function createAttendanceSession(instructorId, input, actor = {}) {
   record.opens += 1; saveAttendanceHistory();
   if (!session) {
     const previouslyDelivered = (record.present || []).map(student => ({ no: String(student.no), name: student.name, checkedAt: student.checkedAt, deliveredAt: record.lastSentAt }));
-    const attendanceField = attendanceHoursField(meeting.type);
-    session = { id: id(), instructorId, course, meetingId: meeting.id, week: meeting.week, apiWeek: meeting.apiWeek, meetingDate: meeting.date, meetingType: meeting.type, absenceHours: meeting.absenceHours, absentField: attendanceField, presentField: attendanceField, openedAt: Date.now(), closesAt: Date.now() + CLASS_TTL, state: 'CLASS_OPEN', present: previouslyDelivered, previouslyDelivered: new Set(previouslyDelivered.map(student => student.no)), historyKey: key };
+    // OİS yöneticisinin 27063 için verdiği çalışan yazma örneği: yok öğrenci
+    // `saat`, QR ile gelmiş öğrenci `Usaat` alanından gider. Bu ortak OİS
+    // yazma sözleşmesidir; ders/hafta bazında sabitlenmez.
+    session = { id: id(), instructorId, course, meetingId: meeting.id, week: meeting.week, apiWeek: meeting.apiWeek, meetingDate: meeting.date, meetingType: meeting.type, absenceHours: meeting.absenceHours, absentField: 'saat', presentField: 'Usaat', openedAt: Date.now(), closesAt: Date.now() + CLASS_TTL, state: 'CLASS_OPEN', present: previouslyDelivered, previouslyDelivered: new Set(previouslyDelivered.map(student => student.no)), historyKey: key };
     sessions.set(session.id, session);
   }
   session.qrOpen = true; session.openNumber = record.opens;
@@ -354,8 +353,7 @@ function createAttendanceSession(instructorId, input, actor = {}) {
 }
 function attendancePayload(session) {
   const present = new Set(session.present.map(student => student.no));
-  const attendanceField = attendanceHoursField(session.meetingType);
-  return { method: 'yoklama', ders: [{ ders_id: session.course.id, tarih: session.meetingDate, kullanici_id: session.course.oisInstructorId || session.instructorId, section: session.course.section, hafta: String(session.apiWeek ?? session.week) }], ogrenciler_saat: (courseStudents[session.course.id] || []).map(student => ({ ogrenci_no: student.no, [attendanceField]: present.has(student.no) ? '0' : String(session.absenceHours) })) };
+  return { method: 'yoklama', ders: [{ ders_id: session.course.id, tarih: session.meetingDate, kullanici_id: session.course.oisInstructorId || session.instructorId, section: session.course.section, hafta: String(session.apiWeek ?? session.week) }], ogrenciler_saat: (courseStudents[session.course.id] || []).map(student => ({ ogrenci_no: student.no, [present.has(student.no) ? 'Usaat' : 'saat']: present.has(student.no) ? '0' : String(session.absenceHours) })) };
 }
 function attendanceDeliverySummary(session, sent) {
   const present = new Set(session.present.map(student => String(student.no)));

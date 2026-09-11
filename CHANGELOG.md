@@ -6,10 +6,10 @@
 - Added a PostgreSQL-backed application-state store for account hashes, calendars, attendance history, and audit logs, while retaining the local-file fallback for local development.
 - Added a free Render Postgres staging resource to `render.yaml`; its private `DATABASE_URL` is injected into the web service without exposing database credentials in the repository.
 
-## 2026-09-11 — OİS teori/uygulama yoklama alanı düzeltmesi
+## 2026-09-11 — Genel OİS öğrenci devamsızlık alanı eşlemesi
 
-- Corrected each OİS attendance payload to use one consistent field for its selected scheduled session: theory sends `saat`, while application/practice/lab sends `Usaat`.
-- QR-confirmed students now send `0` and absent students send the selected session's lesson hours through that same session field.
+- Restored the OİS administrator’s verified common student-payload convention for every course: non-QR-confirmed students send `saat: <lesson-hours>` and QR-confirmed students send `Usaat: 0`.
+- This is independent of the course’s theory/application display metadata and applies to all dates and academic weeks.
 
 ## 2026-09-11 — Yenileme sonrası yoklama durumu tutarlılığı
 
