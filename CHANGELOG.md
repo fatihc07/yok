@@ -21,10 +21,10 @@
 - Replaced the misleading “OİS’e gönderildi” success wording with “OİS API isteği kabul etti” when the API returns HTTP 200 and `err: 0`.
 - The delivery report now explicitly says that OİS first shows the record in its daily attendance list and transfers it to the weekly report at end of day; the app cannot claim weekly-report verification without an OİS read API.
 
-## 2026-09-11 — Kontrollü OİS test hafta alanı eşlemesi
+## 2026-09-11 — Genel OİS hafta kodu ve doğrulama davranışı
 
-- Changed only the authorized PSK 301 OİS test bridge to send the administrator-provided `hafta: "1"` value for every selected test date, instead of deriving that field from the visible test-week number.
-- Live-course week calculations remain unchanged; this bridge is temporary and exists only to validate the OİS test integration.
+- Removed the temporary course-specific test-week override. Every course now sends the selected academic week, unless its OİS program row provides an explicit attendance/API week code.
+- An HTTP 200 / `err: 0` write response is now retained as unverified API acceptance rather than an OİS delivery, so it does not lock attendance history or claim a completed OİS write.
 
 ## 2026-09-11 — Yerel Cloudflare tünelini kaldırma
 

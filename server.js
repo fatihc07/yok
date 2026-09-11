@@ -67,11 +67,7 @@ function buildControlledTestMeetings() {
     return {
       id: `controlled-test:${index + 1}:salı:08:00`, week: index + 1, date: isoDate(date),
       day: 'Salı', startTime: '08:00', endTime: '14:00', type: 'TEORI',
-      // OİS yöneticisinin çalıştığını doğruladığı test örneğinde, ekran tarihi
-      // 13.07.2026 olmasına rağmen API `hafta` alanı "1" idi. Test hostu bu
-      // değeri ekran hafta sırası olarak yorumlamıyor; geçici test köprüsünde
-      // yalnızca yöneticinin örneğindeki sabit değeri kullanıyoruz.
-      absenceHours: 6, apiWeek: '1', absentField: 'saat', presentField: 'Usaat',
+      absenceHours: 6, apiWeek: String(index + 1), absentField: 'saat', presentField: 'Usaat',
     };
   });
 }
@@ -104,7 +100,11 @@ function normalizedProgramMeetings(result, course) {
   return unique.map(({ row, week, date, type, startTime, index }) => {
     const endTime = findValue(row, ['bitis_saat', 'bitissaat', 'end_time', 'endtime', 'end']);
     const hours = lessonHours(startTime, endTime) || Number(findValue(row, ['saat', 'ders_saati', 'derssaati', 'teorik', 'teoriksaat', 'uygulama', 'pratik', 'lab'])) || Number(course.theoreticalHours) || 3;
-    return { id: `ois:${week}:${date}:${type}:${startTime || index}`, week, date, type, startTime: startTime || null, endTime: endTime || null, absenceHours: hours, apiWeek: String(week), absentField: 'saat', presentField: 'Usaat' };
+    // OİS programı görünür hafta sırasından ayrı bir yoklama/API hafta kodu
+    // sağlarsa onu aynen taşırız; aksi halde akademik takvimdeki hafta sırası
+    // bütün dersler için ortak ve güvenli geri dönüş değeridir.
+    const apiWeek = findValue(row, ['yoklama_hafta', 'yoklamahafta', 'api_hafta', 'apihafta', 'hafta_kodu', 'haftakodu', 'hafta_id', 'haftaid']) ?? week;
+    return { id: `ois:${week}:${date}:${type}:${startTime || index}`, week, date, type, startTime: startTime || null, endTime: endTime || null, absenceHours: hours, apiWeek: String(apiWeek), absentField: 'saat', presentField: 'Usaat' };
   });
 }
 
@@ -438,7 +438,10 @@ async function sendToOis(payload, course) {
   console.log(`[OİS] Şifresiz istek özeti · ${JSON.stringify(debug)}`);
   if (result?.err) { const error = new Error(`OİS reddetti: ${result.msg || 'Bilinmeyen hata'}`); error.oisDebug = debug; throw error; }
   return {
-    sent: true,
+    // OİS write endpoint returns only transport acceptance. It does not return
+    // a durable attendance record ID, so this cannot be treated as verified.
+    sent: false,
+    accepted: true,
     verified: false,
     mode: target.environment,
     environment: target.environment,
