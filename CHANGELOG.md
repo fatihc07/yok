@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-11 — OİS ders saatlerini ders listesiyle alma
+
+- “Derslerimi getir” artık her OİS ders kaydındaki teori, uygulama ve laboratuvar saatlerini de saklar ve ders kartında gösterir.
+- Öğretim elemanı ders saati girmez. Yoklamada gönderilecek devamsızlık saati önce OİS program satırından, yoksa bu OİS ders özetinden alınır; yalnız bu ikisi yoksa gösterilen zaman aralığı son çare olur.
+- OİS program ve istek önizlemesi, kullanılan ders-saati özetini de taşır; gönderim öncesi kaynak kontrol edilebilir.
+
 ## 2026-09-11 — QR doğrulama bileti ve gerçekçi OİS durumu
 
 - Fixed the instructor-side QR check-in flow to request the server's short-lived validation ticket before claiming attendance. Valid QR scans had been rejected because the client sent the rotating challenge under the wrong request field.
