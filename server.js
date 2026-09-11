@@ -433,7 +433,16 @@ async function sendToOis(payload, course) {
   console.log(`[OİS] Gönderim yanıtı · HTTP ${response.status} · ${body.slice(0, 300).replace(/\s+/g, ' ')}`);
   console.log(`[OİS] Şifresiz istek özeti · ${JSON.stringify(debug)}`);
   if (result?.err) { const error = new Error(`OİS reddetti: ${result.msg || 'Bilinmeyen hata'}`); error.oisDebug = debug; throw error; }
-  return { sent: true, mode: target.environment, environment: target.environment, environmentLabel: target.label, endpoint: `${url.origin}${url.pathname}`, response: result?.msg || body.slice(0, 500) };
+  return {
+    sent: true,
+    verified: false,
+    mode: target.environment,
+    environment: target.environment,
+    environmentLabel: target.label,
+    endpoint: `${url.origin}${url.pathname}`,
+    response: result?.msg || body.slice(0, 500),
+    verificationNote: 'OİS API isteği kabul etti. Bu kayıt önce OİS Günlük Yoklama Listesi’nde görünür; haftalık rapora OİS gün sonu aktarımından sonra yansır. Uygulama, haftalık raporu doğrulayacak bir OİS okuma API’sine sahip değildir.',
+  };
 }
 async function readOisCourseProgram(instructorId, course) {
   const target = oisReadTarget(course);

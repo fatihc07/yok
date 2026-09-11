@@ -16,6 +16,11 @@
 - Corrected the roster modal to read the selected session's persisted OİS-delivery history after a page refresh, instead of showing all students as waiting because no live session exists.
 - A dry-run/test packet is no longer persisted or presented as an OİS delivery; only an actual successful OİS write locks in the delivered attendance record.
 
+## 2026-09-11 — OİS kabul yanıtı ile haftalık rapor doğrulamasını ayırma
+
+- Replaced the misleading “OİS’e gönderildi” success wording with “OİS API isteği kabul etti” when the API returns HTTP 200 and `err: 0`.
+- The delivery report now explicitly says that OİS first shows the record in its daily attendance list and transfers it to the weekly report at end of day; the app cannot claim weekly-report verification without an OİS read API.
+
 ## 2026-09-11 — Öğretim elemanı ders katılım istatistikleri
 
 - Added a selected-term instructor participation summary to the course dashboard.
