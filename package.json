@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "tv": "sh -c 'npm run server & server_pid=$!; npm run dev -- --host 0.0.0.0 & vite_pid=$!; trap \"kill $server_pid $vite_pid 2>/dev/null\" EXIT INT TERM; cloudflared tunnel --url http://127.0.0.1:5173'",
+    "tv": "sh -c 'npm run server & server_pid=$!; trap \"kill $server_pid 2>/dev/null\" EXIT INT TERM; npm run dev -- --host 0.0.0.0'",
     "server": "node --env-file-if-exists=.env server.js",
     "build": "vite build",
     "preview": "vite preview"

@@ -21,6 +21,11 @@
 - Replaced the misleading “OİS’e gönderildi” success wording with “OİS API isteği kabul etti” when the API returns HTTP 200 and `err: 0`.
 - The delivery report now explicitly says that OİS first shows the record in its daily attendance list and transfers it to the weekly report at end of day; the app cannot claim weekly-report verification without an OİS read API.
 
+## 2026-09-11 — Yerel Cloudflare tünelini kaldırma
+
+- Removed the Cloudflare quick-tunnel command from `npm run tv`; it was only a temporary cross-network convenience and its QUIC/TLS error is unrelated to OİS attendance delivery.
+- The command now starts only the local API and Vite interface. Cross-network classroom testing should use the deployed Railway address.
+
 ## 2026-09-11 — Öğretim elemanı ders katılım istatistikleri
 
 - Added a selected-term instructor participation summary to the course dashboard.
