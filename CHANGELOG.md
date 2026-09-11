@@ -7,6 +7,11 @@
 - A direct browser test showed that the test endpoint can return that response while both the weekly screen and July daily report remain unchanged; the UI therefore no longer claims that a daily record will necessarily appear.
 - Re-ran the controlled request with the administrator's exact mixed absence/presence field mapping after fixing QR validation; OİS test still left both students at zero. This confirms that the remaining write failure is outside the client-side QR and payload construction path.
 
+## 2026-09-11 — OİS ders saati önceliği
+
+- Corrected absence-hour calculation to prefer OİS's explicit session hour or the course's theory/practice/laboratory hour over the displayed start/end time range.
+- Corrected controlled PSK 301 metadata from 6 to its OİS-listed 3 theory hours. An absent PSK 301 student will now send `saat:3`; the test course's long display time range no longer changes that value.
+
 ## 2026-09-11 — OİS test yöneticisi örneğiyle birebir paket
 
 - The controlled PSK 301 test fixture now sends the administrator's explicitly validated 13 July packet values: API week `1`, absent `saat: 2`, and QR-confirmed `Usaat: 0`.

@@ -65,15 +65,15 @@ function buildControlledTestMeetings() {
     const date = new Date(start);
     date.setUTCDate(start.getUTCDate() + index * 7);
     const dateValue = isoDate(date);
-    // OİS yöneticisinin OİS test için çalıştırdığını bildirdiği örnek: aynı
-    // ders, 13.07.2026 tarihinde `hafta: 1` ve gelmeyen öğrenci için 2 saat.
-    // Bu yalnız kontrollü test verisidir; canlı derslerin takvim kuralını etkilemez.
-    const managerVerifiedExample = dateValue === '2026-07-13';
     return {
       id: `controlled-test:${index + 1}:salı:08:00`, week: index + 1, date: dateValue,
       day: 'Salı', startTime: '08:00', endTime: '14:00', type: 'TEORI',
-      absenceHours: managerVerifiedExample ? 2 : 6,
-      apiWeek: managerVerifiedExample ? '1' : String(index + 1),
+      // Süre aralığı sınıf/blok saatini gösterebilir; OİS devamsızlığı için
+      // dersin OİS'teki teorik saati kullanılır. PSK 301'de bu 3 saattir.
+      absenceHours: 3,
+      // Yöneticinin OİS test için verdiği 13.07.2026 örneğindeki API hafta
+      // kodu korunur; yalnız bu kontrollü test köprüsüne özgüdür.
+      apiWeek: dateValue === '2026-07-13' ? '1' : String(index + 1),
       absentField: 'saat', presentField: 'Usaat',
     };
   });
@@ -106,7 +106,16 @@ function normalizedProgramMeetings(result, course) {
   })).values()].sort((a, b) => a.week - b.week || a.date.localeCompare(b.date) || String(a.startTime || '').localeCompare(String(b.startTime || '')));
   return unique.map(({ row, week, date, type, startTime, index }) => {
     const endTime = findValue(row, ['bitis_saat', 'bitissaat', 'end_time', 'endtime', 'end']);
-    const hours = lessonHours(startTime, endTime) || Number(findValue(row, ['saat', 'ders_saati', 'derssaati', 'teorik', 'teoriksaat', 'uygulama', 'pratik', 'lab'])) || Number(course.theoreticalHours) || 3;
+    const rowHours = Number(findValue(row, type === 'UYGULAMA'
+      ? ['uygulama', 'pratik', 'lab', 'saat', 'ders_saati', 'derssaati']
+      : ['teorik', 'teoriksaat', 'saat', 'ders_saati', 'derssaati']));
+    const courseHours = type === 'UYGULAMA'
+      ? (Number(course.practicalHours) || Number(course.laboratoryHours))
+      : Number(course.theoreticalHours);
+    // Devamsızlık saati OİS'in ders/oturum saatinden gelir. Başlangıç-bitiş
+    // aralığı yalnız programı görselleştirmek için kullanılır; teneffüs/blok
+    // aralığı nedeniyle ders saatini şişiremez.
+    const hours = rowHours || courseHours || lessonHours(startTime, endTime) || 1;
     // OİS programı görünür hafta sırasından ayrı bir yoklama/API hafta kodu
     // sağlarsa onu aynen taşırız; aksi halde akademik takvimdeki hafta sırası
     // bütün dersler için ortak ve güvenli geri dönüş değeridir.
@@ -152,7 +161,7 @@ function controlledTestCourseFor(instructorId, season, semester) {
     id: CONTROLLED_TEST_COURSE_ID, code: 'PSK 301', title: 'Fizyolojik Psikoloji',
     academicYear: CONTROLLED_TEST_SEASON, semester: CONTROLLED_TEST_SEMESTER,
     term: `${CONTROLLED_TEST_SEASON} · Yaz`, section: '1', program: 'Psikoloji Programı',
-    theoreticalHours: 6, practicalHours: 0, laboratoryHours: 0,
+    theoreticalHours: 3, practicalHours: 0, laboratoryHours: 0,
     oisInstructorId: CONTROLLED_TEST_INSTRUCTOR_ID, integrationTarget: 'test-sandbox',
     meetings: buildControlledTestMeetings(), meetingSource: 'controlled-test',
   };
@@ -201,7 +210,13 @@ function calculatedCalendarMeetings(programResult, course) {
     const startTime = directProgramValue(row, ['baslangicsaat', 'starttime', 'start']);
     const endTime = directProgramValue(row, ['bitissaat', 'endtime', 'end']);
     const type = meetingType(directProgramValue(row, ['islenis', 'dersturu', 'tur', 'type', 'lab']));
-    const hours = lessonHours(startTime, endTime) || Number(directProgramValue(row, ['teorik', 'uygulama', 'pratik', 'lab', 'derssaati', 'saat'])) || (type === 'UYGULAMA' ? Number(course.practicalHours) : Number(course.theoreticalHours)) || 1;
+    const rowHours = Number(directProgramValue(row, type === 'UYGULAMA'
+      ? ['uygulama', 'pratik', 'lab', 'derssaati', 'saat']
+      : ['teorik', 'derssaati', 'saat']));
+    const courseHours = type === 'UYGULAMA'
+      ? (Number(course.practicalHours) || Number(course.laboratoryHours))
+      : Number(course.theoreticalHours);
+    const hours = rowHours || courseHours || lessonHours(startTime, endTime) || 1;
     const key = `${offset}:${type}:${startTime || ''}:${endTime || ''}:${hours}`;
     if (seen.has(key)) return null; seen.add(key);
     return { offset, day: String(day), startTime: startTime || null, endTime: endTime || null, type, hours, key };
