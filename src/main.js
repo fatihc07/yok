@@ -154,13 +154,17 @@ function coursesOverviewEnhanced() {
   const rowsByCourse=new Map((reportIsCurrent?report.rows:[]).map(row=>[participationKey(row),row]));
   const summary=reportIsCurrent?report.summary:null;
   const summaryText=summary?.participationRate===null||summary?.participationRate===undefined
-    ? 'Bu dönem henüz OİS’e gönderilmiş yoklama bulunmuyor.'
-    : `Dönem genel katılımı ${participationPercent(summary.participationRate)} · ${summary.coursesWithAttendance}/${summary.totalCourses} derste yoklama işlendi.`;
+    ? Number(summary?.acceptedAttempts)>0
+      ? `${summary.acceptedAttempts} OİS kabul yanıtı alındı; kayıtlar OİS ekranında henüz doğrulanmadı.`
+      : 'Bu dönem henüz OİS tarafından doğrulanmış yoklama bulunmuyor.'
+    : `Dönem genel katılımı ${participationPercent(summary.participationRate)} · ${summary.coursesWithAttendance}/${summary.totalCourses} derste yoklama doğrulandı.`;
   const courseParticipation=courseItem=>{
     const row=rowsByCourse.get(`${courseItem.id}:${courseItem.section}`);
-    if (!row || row.participationRate===null || row.participationRate===undefined) return '<small style="margin-top:8px">Henüz gönderilmiş yoklama yok.</small>';
+    if (!row || row.participationRate===null || row.participationRate===undefined) return Number(row?.acceptedAttempts)>0
+      ? `<small style="margin-top:8px">${row.acceptedAttempts} OİS kabul yanıtı alındı; kayıt henüz doğrulanmadı.</small>`
+      : '<small style="margin-top:8px">Henüz OİS tarafından doğrulanmış yoklama yok.</small>';
     const weekText=row.lastCompletedWeek ? `${row.lastCompletedWeek}. haftaya kadar` : 'İşlenen haftalarda';
-    return `<div style="margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="pill">Genel katılım ${participationPercent(row.participationRate)}</span><small style="margin:0">${weekText} · ${row.sentSessions} yoklama oturumu</small></div>`;
+    return `<div style="margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="pill">Genel katılım ${participationPercent(row.participationRate)}</span><small style="margin:0">${weekText} · ${row.sentSessions} doğrulanmış yoklama oturumu</small></div>`;
   };
   const courseHourSummary=courseItem=>{
     const entries=[['Teori',courseItem.theoreticalHours],['Uygulama',courseItem.practicalHours],['Laboratuvar',courseItem.laboratoryHours]]

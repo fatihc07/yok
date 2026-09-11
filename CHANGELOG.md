@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-11 — Kabul edilen ve doğrulanan yoklamaları ayırma
+
+- Replaced the misleading “no sent attendance” wording with “no OİS-verified attendance” when the write API has not supplied verifiable persistence.
+- Instructor course and period summaries now count HTTP 200 / `err:0` acceptance responses separately as unverified attempts; participation percentages still use only confirmed records.
+
 ## 2026-09-11 — OİS ders kimliği türü düzeltmesi
 
 - Restored `ders_id` to a JSON number for all OİS attendance writes, matching the administrator's tested request exactly. Instructor ID, section, week, and student numbers remain strings.
