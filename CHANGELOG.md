@@ -10,6 +10,7 @@
 
 - Older HTTP 200 / `err: 0` requests that had been incorrectly retained as delivered attendance are now invalidated in both local storage and the PostgreSQL-backed server history.
 - A new QR session starts with a clean roster unless an attendance record is explicitly verified; obsolete attempts cannot mark a student present, consume the five-session allowance, or affect participation statistics.
+- Applied the same cleanup before any optional database connection, so local testing cannot retain an obsolete five-session counter or show an invalid sixth opening.
 
 ## 2026-09-11 — Render çevrimiçi test hazırlığı
 

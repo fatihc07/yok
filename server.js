@@ -276,6 +276,9 @@ function invalidateUnverifiedAttendanceHistory() {
   }
   if (changed) saveAttendanceHistory();
 }
+// Yerelde PostgreSQL olmayabilir; bu nedenle ilk dosya okumasından hemen sonra
+// da temizleriz. PostgreSQL bağlanırsa aşağıda onun kopyası da temizlenir.
+invalidateUnverifiedAttendanceHistory();
 function attendanceHistoryKey(instructorId, course, meeting) { return `${instructorId}:${course.id}:${meeting.id}`; }
 function attendanceRecord(instructorId, course, meeting) {
   const key = attendanceHistoryKey(instructorId, course, meeting);
