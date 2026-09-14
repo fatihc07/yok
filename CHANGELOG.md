@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-14 — OİS gönderiminde oturum sahibi kimliği
+
+- OİS yoklama paketindeki `kullanici_id` artık ders sahibinden türetilmez; QR oturumunu açan ve sisteme giriş yapmış öğretim elemanının kimliği kullanılır.
+- Ders/program sorgusu için gereken ders sahibi kimliği ayrı tutulur. Böylece yardımcı öğretim elemanı ile ders sahibinin farklı olduğu derslerde iki kimlik birbirine karışmaz.
+
 ## 2026-09-14 — v1.1.0 sürüm görünürlüğü
 
 - Uygulama sürümü `1.1.0` olarak yayınlandı.

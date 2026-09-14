@@ -23,9 +23,9 @@ const OIS_TEST_TLS_BYPASS = OIS_ENVIRONMENT === 'test' && process.env.OBS_TEST_I
 // Canlı ders sorgusunu veya canlı gönderimi etkilemez; yayına alınmadan kaldırılmalıdır.
 const CONTROLLED_TEST_INSTRUCTOR_ID = '2500002318';
 // Kontrollü OİS test dersinde dersi açan hoca ile yoklamayı işleten yardımcı
-// hoca farklıdır. Bu değer yalnızca test CRM isteğinin `kullanici_id` alanına
-// gider; dersin sahibi/katalog sorgusu yukarıdaki kimlikte kalır.
-const CONTROLLED_TEST_ATTENDANCE_INSTRUCTOR_ID = process.env.OBS_TEST_ATTENDANCE_INSTRUCTOR_ID || '2430042177';
+// hoca farklı olabilir. Ders/program sorgusu ders sahibinden yapılır; CRM
+// isteğindeki `kullanici_id` ise her zaman oturum açmış öğretim elemanıdır.
+const CONTROLLED_TEST_HELPER_INSTRUCTOR_ID = process.env.OBS_TEST_ATTENDANCE_INSTRUCTOR_ID || '2430042177';
 const CONTROLLED_TEST_SEASON = '2025-2026';
 const CONTROLLED_TEST_SEMESTER = 3;
 const CONTROLLED_TEST_COURSE_ID = 27063;
@@ -167,13 +167,14 @@ const testCourse = {
 };
 
 function controlledTestCourseFor(instructorId, season, semester) {
-  if (String(instructorId) !== CONTROLLED_TEST_INSTRUCTOR_ID || String(season) !== CONTROLLED_TEST_SEASON || Number(semester) !== CONTROLLED_TEST_SEMESTER) return null;
+  if (![CONTROLLED_TEST_INSTRUCTOR_ID, CONTROLLED_TEST_HELPER_INSTRUCTOR_ID].includes(String(instructorId)) || String(season) !== CONTROLLED_TEST_SEASON || Number(semester) !== CONTROLLED_TEST_SEMESTER) return null;
   return {
     id: CONTROLLED_TEST_COURSE_ID, code: 'PSK 301', title: 'Fizyolojik Psikoloji',
     academicYear: CONTROLLED_TEST_SEASON, semester: CONTROLLED_TEST_SEMESTER,
     term: `${CONTROLLED_TEST_SEASON} · Yaz`, section: '1', program: 'Psikoloji Programı',
     theoreticalHours: 3, practicalHours: 0, laboratoryHours: 0,
-    oisInstructorId: CONTROLLED_TEST_ATTENDANCE_INSTRUCTOR_ID,
+    oisInstructorId: CONTROLLED_TEST_INSTRUCTOR_ID,
+    attendanceInstructorId: String(instructorId),
     courseOwnerId: CONTROLLED_TEST_INSTRUCTOR_ID,
     integrationTarget: 'test-sandbox',
     meetings: buildControlledTestMeetings(), meetingSource: 'controlled-test',
@@ -416,7 +417,7 @@ function attendancePayload(session) {
   // teori `saat`, uygulama/pratik/laboratuvar `Usaat` kullanır. Aynı oturumda
   // QR doğrulanan öğrenci 0, gelmeyen öğrenci ders saati kadar gönderilir.
   const hourField = attendanceHourField(session.meetingType);
-  return { method: 'yoklama', ders: [{ ders_id: Number(session.course.id), tarih: session.meetingDate, kullanici_id: String(session.course.oisInstructorId || session.instructorId), section: String(session.course.section), hafta: String(session.apiWeek ?? session.week) }], ogrenciler_saat: (courseStudents[session.course.id] || []).map(student => ({ ogrenci_no: String(student.no), [hourField]: present.has(student.no) ? '0' : String(session.absenceHours) })) };
+  return { method: 'yoklama', ders: [{ ders_id: Number(session.course.id), tarih: session.meetingDate, kullanici_id: String(session.course.attendanceInstructorId || session.instructorId), section: String(session.course.section), hafta: String(session.apiWeek ?? session.week) }], ogrenciler_saat: (courseStudents[session.course.id] || []).map(student => ({ ogrenci_no: String(student.no), [hourField]: present.has(student.no) ? '0' : String(session.absenceHours) })) };
 }
 function attendanceDeliverySummary(session, sent) {
   const present = new Set(session.present.map(student => String(student.no)));
@@ -685,7 +686,7 @@ app.get('/api/courses/:id/attendance-history', auth, (req, res) => {
 });
 app.post('/api/courses/:id/ois-students', auth, async (req, res) => { const course = getCourse(req.instructorId, req.params.id); if (!course) return res.status(403).json({ error: 'Bu ders size atanmış değil' }); try { const students = await readOisStudents(course); courseStudents[course.id] = students; res.json({ ok: true, courseId: course.id, students, source: isControlledTestCourse(course) ? 'OİS test' : 'OİS' }); } catch (error) { if (isControlledTestCourse(course)) return res.json({ ok: true, courseId: course.id, students: courseStudents[course.id] || [], source: 'OİS test için tanımlı kontrollü test listesi', oisWarning: error.message }); res.status(502).json({ error: error.message }); } });
 app.get('/api/courses/:id/ois-program', auth, async (req, res) => { const course = getCourse(req.instructorId, req.params.id); if (!course) return res.status(403).json({ error: 'Bu ders size atanmış değil' }); try { const program = await readOisCourseProgram(req.instructorId, course); res.json({ ok: true, course: { id: course.id, code: course.code, title: course.title, academicYear: course.academicYear, semester: course.semester, section: course.section, theoreticalHours: course.theoreticalHours, practicalHours: course.practicalHours, laboratoryHours: course.laboratoryHours }, ...program }); } catch (error) { res.status(502).json({ error: error.message, oisDebug: error.oisDebug || null }); } });
-app.get('/api/ois/assigned-courses', auth, async (req, res) => { const season = String(req.query.season || ''); const semester = Number(req.query.semester); if (!/^20\d\d-20\d\d$/.test(season) || ![1,2,3].includes(semester)) return res.status(400).json({ error: 'Geçerli sezon ve dönem seçin.' }); const controlledCourse = controlledTestCourseFor(req.instructorId, season, semester); try { let data; try { data = await readOisAssignedCourses(req.instructorId, season, semester); } catch (error) { if (!controlledCourse) throw error; console.warn(`[OİS] Kontrollü test dersi için canlı ders listesi okunamadı; yalnız test dersi sunuluyor · ${error.message}`); data = { courses: [], instructorName: null, instructorPhoto: null, raw: null }; } const sourceCourses = controlledCourse ? [...data.courses.filter(course => !(course.id === controlledCourse.id && course.section === controlledCourse.section)), controlledCourse] : data.courses; const courses = (await Promise.all(sourceCourses.map(course => attachOisMeetings(req.instructorId, { ...course, oisInstructorId: req.instructorId })))).map(course => ({ ...course, editable: courseIsEditable(course) })); instructors[req.instructorId].courses = courses; if (data.instructorName) { instructors[req.instructorId].name = data.instructorName; saveInstructorProfile(instructors[req.instructorId]); } res.json({ ok: true, instructor: { id: req.instructorId, name: instructors[req.instructorId].name, photo: data.instructorPhoto }, season, semester, courses, raw: data.raw }); } catch (error) { res.status(502).json({ error: error.message }); } });
+app.get('/api/ois/assigned-courses', auth, async (req, res) => { const season = String(req.query.season || ''); const semester = Number(req.query.semester); if (!/^20\d\d-20\d\d$/.test(season) || ![1,2,3].includes(semester)) return res.status(400).json({ error: 'Geçerli sezon ve dönem seçin.' }); const controlledCourse = controlledTestCourseFor(req.instructorId, season, semester); try { let data; try { data = await readOisAssignedCourses(req.instructorId, season, semester); } catch (error) { if (!controlledCourse) throw error; console.warn(`[OİS] Kontrollü test dersi için canlı ders listesi okunamadı; yalnız test dersi sunuluyor · ${error.message}`); data = { courses: [], instructorName: null, instructorPhoto: null, raw: null }; } const sourceCourses = controlledCourse ? [...data.courses.filter(course => !(course.id === controlledCourse.id && course.section === controlledCourse.section)), controlledCourse] : data.courses; const courses = (await Promise.all(sourceCourses.map(course => attachOisMeetings(req.instructorId, { ...course, oisInstructorId: course.oisInstructorId || req.instructorId, attendanceInstructorId: req.instructorId })))).map(course => ({ ...course, editable: courseIsEditable(course) })); instructors[req.instructorId].courses = courses; if (data.instructorName) { instructors[req.instructorId].name = data.instructorName; saveInstructorProfile(instructors[req.instructorId]); } res.json({ ok: true, instructor: { id: req.instructorId, name: instructors[req.instructorId].name, photo: data.instructorPhoto }, season, semester, courses, raw: data.raw }); } catch (error) { res.status(502).json({ error: error.message }); } });
 app.post('/api/sessions', auth, (req, res) => {
   const instructor = instructors[req.instructorId];
   const created = createAttendanceSession(req.instructorId, req.body, auditContext(req, 'instructor', req.instructorId, instructor?.name));
