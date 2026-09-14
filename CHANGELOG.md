@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-14 — Yazım kapalı gönderim raporu
+
+- OİS ayrıntısı bulunmayan raporlar artık dry-run/yazım-kapalı durumunu ve sunucunun gerçek açıklamasını gösterir.
+- Böylece hiçbir OİS isteği gönderilmemiş bir paket, eksik sunucu yanıtı gibi görünmez.
+
 ## 2026-09-14 — Kontrollü OİS testinde yardımcı-hoca kimliği
 
 - Normal derslerin OİS paketindeki `kullanici_id`, sisteme giriş yapan öğretim elemanından gelir.
