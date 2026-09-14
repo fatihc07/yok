@@ -1,9 +1,9 @@
 # Changelog
 
-## 2026-09-14 — OİS gönderiminde oturum sahibi kimliği
+## 2026-09-14 — Kontrollü OİS testinde yardımcı-hoca kimliği
 
-- OİS yoklama paketindeki `kullanici_id` artık ders sahibinden türetilmez; QR oturumunu açan ve sisteme giriş yapmış öğretim elemanının kimliği kullanılır.
-- Ders/program sorgusu için gereken ders sahibi kimliği ayrı tutulur. Böylece yardımcı öğretim elemanı ile ders sahibinin farklı olduğu derslerde iki kimlik birbirine karışmaz.
+- Normal derslerin OİS paketindeki `kullanici_id`, sisteme giriş yapan öğretim elemanından gelir.
+- Yalnız kontrollü PSK 301 OİS test dersinde, ders sahibiyle giriş yapılsa da paket `OBS_TEST_ATTENDANCE_INSTRUCTOR_ID` ile tanımlı yardımcı-hoca kimliği üzerinden gönderilir. Bu istisna canlı kullanıma taşınmayacaktır.
 
 ## 2026-09-14 — v1.1.0 sürüm görünürlüğü
 
