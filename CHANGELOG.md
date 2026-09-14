@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-14 — v1.2.0 sürüm etiketi
+
+- Dağıtım doğrulaması için görünür uygulama sürümü `v1.2.0` olarak yükseltildi.
+
 ## 2026-09-14 — Yazım kapalı gönderim raporu
 
 - OİS ayrıntısı bulunmayan raporlar artık dry-run/yazım-kapalı durumunu ve sunucunun gerçek açıklamasını gösterir.

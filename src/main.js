@@ -3,7 +3,7 @@ import './style.css';
 
 const ROTATE_MS = 20_000;
 const SESSION_MS = 8 * 60_000;
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const storeKey = 'kampus-yoklama-mvp-v1';
 let students = [];
 let course = { id:27063, code: 'PSK 301', title: 'Fizyolojik Psikoloji', room: '—', day: 'Pazartesi', time: 'OİS haftalık planı' };
