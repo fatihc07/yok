@@ -484,7 +484,12 @@ async function sendToOis(payload, course) {
   const target = oisWriteTarget(course);
   if (process.env.OBS_LIVE_WRITE !== 'true') return { sent: false, mode: 'dry-run', environment: target.environment, environmentLabel: target.label, endpoint: target.base || null, message: `${target.label} yazımı kapalı; gönderim paketi hazırlandı.` };
   const base = target.base, username = process.env.OBS_API_USERNAME, password = process.env.OBS_API_PASSWORD;
-  if (!base || !username || !password) throw new Error('OİS canlı yazımı için sunucu ortam değişkenleri eksik.');
+  if (!base || !username || !password) {
+    const missing = [!base && 'OBS_API_BASE', !username && 'OBS_API_USERNAME', !password && 'OBS_API_PASSWORD'].filter(Boolean);
+    const error = new Error(`OİS gönderim ayarları eksik: ${missing.join(', ')}.`);
+    error.oisDebug = { environment: target.environment, environmentLabel: target.label, endpoint: base || null, httpMethod: 'GET', transport: target.useTestTls ? 'OİS test geçici TLS istisnası' : 'Standart TLS doğrulaması', parameters: { method: payload.method, ders: payload.ders, ogrenciler_saat: payload.ogrenciler_saat }, httpStatus: null, response: `Eksik Railway değişkenleri: ${missing.join(', ')}` };
+    throw error;
+  }
   const url = new URL(base);
   url.searchParams.set('api_username', username); url.searchParams.set('api_password', password); url.searchParams.set('method', payload.method); url.searchParams.set('ders', JSON.stringify(payload.ders)); url.searchParams.set('ogrenciler_saat', JSON.stringify(payload.ogrenciler_saat));
   const debug = { environment: target.environment, environmentLabel: target.label, endpoint: `${url.origin}${url.pathname}`, httpMethod: 'GET', transport: target.useTestTls ? 'OİS test geçici TLS istisnası' : 'Standart TLS doğrulaması', parameters: { method: payload.method, ders: payload.ders, ogrenciler_saat: payload.ogrenciler_saat }, httpStatus: null, response: null };

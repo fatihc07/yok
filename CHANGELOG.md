@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-14 — Eksik OİS değişkeni raporu
+
+- OİS yazımı etkinleştirilmiş ancak sunucu ayarları eksikse, gönderim raporu eksik Railway değişkenlerinin adlarını gösterir.
+- Şifre ve API anahtarı değerleri raporda gösterilmez.
+
 ## 2026-09-14 — v1.2.0 sürüm etiketi
 
 - Dağıtım doğrulaması için görünür uygulama sürümü `v1.2.0` olarak yükseltildi.
