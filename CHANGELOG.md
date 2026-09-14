@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-14 — Kontrollü yardımcı-hoca OİS testi
+
+- Kontrollü test dersinde ders sahibi ile yoklamayı işleyen yardımcı hoca kimlikleri ayrıldı.
+- Teste özgü `kullanici_id`, `OBS_TEST_ATTENDANCE_INSTRUCTOR_ID` ile değiştirilebilir; ders sorgusu ders sahibine bağlı kalır.
+
 ## 2026-09-11 — OİS devamsızlık alanını oturum türüne göre seçme
 
 - Corrected the general OİS student payload rule: theory sessions use `saat` for every student, while application/practice/laboratory sessions use `Usaat` for every student.

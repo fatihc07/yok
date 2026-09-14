@@ -22,6 +22,10 @@ const OIS_TEST_TLS_BYPASS = OIS_ENVIRONMENT === 'test' && process.env.OBS_TEST_I
 // Bu tanım yalnızca OİS yöneticisinin verdiği kontrollü QR testi içindir.
 // Canlı ders sorgusunu veya canlı gönderimi etkilemez; yayına alınmadan kaldırılmalıdır.
 const CONTROLLED_TEST_INSTRUCTOR_ID = '2500002318';
+// Kontrollü OİS test dersinde dersi açan hoca ile yoklamayı işleten yardımcı
+// hoca farklıdır. Bu değer yalnızca test CRM isteğinin `kullanici_id` alanına
+// gider; dersin sahibi/katalog sorgusu yukarıdaki kimlikte kalır.
+const CONTROLLED_TEST_ATTENDANCE_INSTRUCTOR_ID = process.env.OBS_TEST_ATTENDANCE_INSTRUCTOR_ID || '2430042177';
 const CONTROLLED_TEST_SEASON = '2025-2026';
 const CONTROLLED_TEST_SEMESTER = 3;
 const CONTROLLED_TEST_COURSE_ID = 27063;
@@ -169,7 +173,9 @@ function controlledTestCourseFor(instructorId, season, semester) {
     academicYear: CONTROLLED_TEST_SEASON, semester: CONTROLLED_TEST_SEMESTER,
     term: `${CONTROLLED_TEST_SEASON} · Yaz`, section: '1', program: 'Psikoloji Programı',
     theoreticalHours: 3, practicalHours: 0, laboratoryHours: 0,
-    oisInstructorId: CONTROLLED_TEST_INSTRUCTOR_ID, integrationTarget: 'test-sandbox',
+    oisInstructorId: CONTROLLED_TEST_ATTENDANCE_INSTRUCTOR_ID,
+    courseOwnerId: CONTROLLED_TEST_INSTRUCTOR_ID,
+    integrationTarget: 'test-sandbox',
     meetings: buildControlledTestMeetings(), meetingSource: 'controlled-test',
   };
 }
