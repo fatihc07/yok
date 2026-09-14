@@ -4,6 +4,7 @@
 
 - Normal derslerin OİS paketindeki `kullanici_id`, sisteme giriş yapan öğretim elemanından gelir.
 - Yalnız kontrollü PSK 301 OİS test dersinde, ders sahibiyle giriş yapılsa da paket `OBS_TEST_ATTENDANCE_INSTRUCTOR_ID` ile tanımlı yardımcı-hoca kimliği üzerinden gönderilir. Bu istisna canlı kullanıma taşınmayacaktır.
+- Gönderim önizlemesindeki öğretim elemanı bilgisi, giriş hesabı yerine paketteki gerçek `kullanici_id` alanından gösterilir.
 
 ## 2026-09-14 — v1.1.0 sürüm görünürlüğü
 
