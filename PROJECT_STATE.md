@@ -2,7 +2,7 @@
 
 ## Current version
 
-Local QR attendance MVP with an OİS write adapter.
+Kampüs Yoklama v1.1.0 — local QR attendance MVP with an OİS write adapter.
 
 ## Architecture
 
@@ -69,6 +69,7 @@ Local QR attendance MVP with an OİS write adapter.
 - Historical records created by older builds from an unverified HTTP 200 / `err: 0` response are invalidated at every server startup from both the local-file and PostgreSQL stores. They cannot pre-fill a new QR session, consume an opening allowance, or inflate participation figures. The browser likewise discards unverified legacy completion summaries on load.
 - Administrator reporting persists audit events locally and limits raw audit access to administrator authentication. The report interface filters by date, instructor, and action category. It reports daily unique instructor logins by one-way network identifier, attendance lessons, QR check-ins, unique students (selected dates and lifetime), average per-slot participation, and QR sessions opened.
 - Vite production output explicitly includes `index.html`, `admin.html`, and `student.html`, so the administrator and student surfaces are included alongside the main instructor screen in a build.
+- Release version `v1.1.0` is visible on the instructor login screen and throughout the instructor interface header, providing a direct deployment/freshness check after Railway rollout.
 - The instructor dashboard now displays a per-course cumulative participation rate for the selected term. It is calculated from locally persisted, successfully completed attendance deliveries as attended students divided by the enrolled-student total across delivered lesson slots; each course states the last processed academic week and session count. A period-wide instructor summary uses the same weighted calculation across that instructor’s selected-term courses.
 - Render staging support: the Express server serves the built `dist` interface and API from one HTTPS service, exposes `/healthz`, and uses `DATABASE_URL` when present. The PostgreSQL-backed application-state store retains account hashes, calendars, attendance history, and audit logs while preserving the local-file fallback for development. `render.yaml` defines a free staging Postgres instance and passes its private connection string to the web service.
 

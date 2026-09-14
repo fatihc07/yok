@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-14 — v1.1.0 sürüm görünürlüğü
+
+- Uygulama sürümü `1.1.0` olarak yayınlandı.
+- Öğretmen giriş ekranı ve uygulama başlığına görünür `v1.1.0` etiketi eklendi; Railway dağıtımının güncel sürümü açtığı doğrudan kontrol edilebilir.
+
 ## 2026-09-14 — Ayrıntılı OİS gönderim yanıtı
 
 - Yoklama gönderildikten sonra öğretmen özeti artık OİS’in HTTP durumunu, şifresiz gönderilen alanları ve sunucunun ham yanıtını gösterir.
