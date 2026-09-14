@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-14 — Ayrıntılı OİS gönderim yanıtı
+
+- Yoklama gönderildikten sonra öğretmen özeti artık OİS’in HTTP durumunu, şifresiz gönderilen alanları ve sunucunun ham yanıtını gösterir.
+- API kullanıcı adı ve şifresi bu ayrıntı ekranında da gizli kalır.
+
 ## 2026-09-14 — Kontrollü yardımcı-hoca OİS testi
 
 - Kontrollü test dersinde ders sahibi ile yoklamayı işleyen yardımcı hoca kimlikleri ayrıldı.

@@ -517,6 +517,15 @@ async function sendToOis(payload, course) {
     environmentLabel: target.label,
     endpoint: `${url.origin}${url.pathname}`,
     response: result?.msg || body.slice(0, 500),
+    // HTTP 200 / err:0 is not enough to prove that OİS wrote a record. Keep
+    // the non-secret evidence visible to the instructor for support triage.
+    diagnostics: {
+      httpStatus: response.status,
+      transport: debug.transport,
+      endpoint: `${url.origin}${url.pathname}`,
+      request: debug.parameters,
+      rawResponse: body.slice(0, 2_000),
+    },
     verificationNote: 'OİS HTTP 200 / err:0 yanıtı döndü; ancak bu yanıt OİS kaydının kalıcı olarak oluştuğunu kanıtlamaz. OİS raporunda görünene kadar kayıt doğrulanmamış kabul edilir.',
   };
 }
